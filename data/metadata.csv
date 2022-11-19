@@ -1,0 +1,6 @@
+file_name,online_link,file_size_mb,rs_epsg,number_of_fields_or_layers,number_of_features_or_cells,extent_xmin,extent_xmax,extent_ymin,extent_ymax,description_of_data
+florence.tif,https://global-flood-database.cloudtostreet.ai/#interactive-map,3.8,4326,5,6409854,-82.79323,-75.45624,33.11639,37.52263,FLooding data of Hurricane Florence in 2018
+highwatermark.csv,https://stn.wim.usgs.gov/FEV/#2018Florence,0.413,,1,44436,,,,,High-water mark locations during the flood event of Hurricane Florence
+precip.tif,https://water.weather.gov/precip/download.php,5.6,NOAA_HRAP_Grid,4,22686169,-1904912,3434411,-7619987,-3423784,National precipitation of September 2018
+10_DEM_y30x-90.tif,https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/elevation/copernicus-dem/elevation,450.5,4326,1,144024001,-90.00042,-79.99958,29.99958,40.00042,DEM data of the tile where South Carolina roughly is
+10_DEM_y30x-80.tif,https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/elevation/copernicus-dem/elevation,123.8,4326,1,69136801,-80.00042,-73.99958,31.99958,40.00042,DEM data of the tile where North Carolina roughly is

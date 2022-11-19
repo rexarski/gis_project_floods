@@ -1,0 +1,11 @@
+# R and macOS
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Renviron
+.DS_Store
+
+# Large tif files
+10_DEM_y30x-80.tif
+10_DEM_y30x-90.tif
