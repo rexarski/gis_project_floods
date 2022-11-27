@@ -85,11 +85,6 @@ floods$flooded %>%
     style = 'cat',
     palette = 'Reds')
 
-floods %>%
-  terra::writeRaster(
-    'data/processed/floods.tif',
-    overwrite = TRUE)
-
 # High-water mark
 
 # URL: https://stn.wim.usgs.gov/FEV/#2018Florence
@@ -165,12 +160,6 @@ precip$precip_4 %>%
   tm_shape() +
   tm_raster()
 
-# precip %>%
-#   terra::writeRaster(
-#     'data/processed/precip.tif',
-#     overwrite = TRUE)
-
-
 
 # Digital Elevation Model (DEM)
 
@@ -182,11 +171,6 @@ dem <-
     terra::rast('data/raw/10_DEM_y30x-80/10_DEM_y30x-80.tif')) %>%
   terra::resample(floods) %>%
   terra::mask(boundary)
-
-# dem %>%
-#   terra::writeRaster(
-#     'data/processed/dem.tif',
-#     overwrite = TRUE)
 
 hillshade <- 
   terra::shade(
@@ -201,11 +185,6 @@ hillshade <-
       unit = 'radians'),
     angle = 45,
     direction = 135)
-
-# hillshade %>%
-#   terra::writeRaster(
-#     'data/processed/hillshade.tif',
-#     overwrite = TRUE)
 
 hillshade %>%
   tm_shape('Hillshade') +
@@ -240,25 +219,28 @@ tm_shape(pop_den) +
 
 # Save the processed SpatRaster stack
 
-dem %>%
-  terra::set.names('elevation')
-hillshade %>%
-  terra::set.names('hillshade')
-pop_den %>%
-  terra::set.names('pop_density')
-precip$precip_4 %>%
-  terra::set.names('percent_of_normal_precip')
-
 rasters <- 
   terra::rast(
-    c(floods,
+    list(
+      floods$flooded,
+      floods$duration,
+      floods$jrc_perm_water,
       dem,
       hillshade,
       pop_den,
       precip$precip_4))
 
+names(rasters) <- c(
+  'flooded',
+  'duration',
+  'perm_water',
+  'elevation',
+  'hillshade',
+  'pop_density',
+  'percent_of_normal_precip')
+
 terra::writeRaster(
   rasters,
-  'data/processed/rasters.tif',
-  filetype = 'GTiff',
+  filename = 'data/processed/rasters.tif',
   overwrite = TRUE)
+
