@@ -7,16 +7,12 @@ pacman::p_load(
   glue,
   tidytext,
   showtext,
-  ggrepel,
-  lubridate
+  ggrepel
 )
 
 font_add_google(
-  name = 'Roboto Mono',
-  family = 'Roboto Mono')
-font_add_google(
-  name = 'Roboto Condensed',
-  family = 'Roboto Condensed')
+  name = 'Chivo',
+  family = 'Chivo')
 
 showtext_auto()
 
@@ -45,12 +41,12 @@ theme_pulp_fiction <- function() {
       axis.title.y = element_text(
         vjust = 0.2,
         size = 14,
-        family = 'Roboto Mono',
+        family = 'Chivo',
         face = 'bold'), # repositioning
       axis.title.x = element_text(
         hjust = 0.5,
         size = 14,
-        family = 'Roboto Mono',
+        family = 'Chivo',
         face = 'bold'), # repositioning
       axis.text.x = element_text(
         size = 8),
@@ -58,27 +54,27 @@ theme_pulp_fiction <- function() {
         size = 8,
         angle = 30),
       text = element_text(
-        family = 'Roboto Mono',
+        family = 'Chivo',
         color = '#3B372E'),
       plot.title = element_text(
-        family = 'Roboto Mono',
+        family = 'Chivo',
         face = 'bold',
         size = 20,
         hjust = 0.5),
       plot.subtitle = element_markdown(
-        family = 'Roboto Condensed',
+        family = 'Chivo',
         size = 12,
         hjust = 0.5),
       plot.caption = element_markdown(
         size = 10,
-        family = 'Roboto Condensed'),
+        family = 'Chivo'),
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       plot.margin = margin(20, 20, 10, 10),
       strip.background = element_rect(
         fill = '#D8C8B3'),
       strip.text = element_text(
-        family = 'Roboto Mono',
+        family = 'Chivo',
         face = 'bold',
         size = 8,
         color = '#654321'))

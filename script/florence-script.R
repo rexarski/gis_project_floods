@@ -102,7 +102,19 @@ hwm <- read_csv('data/raw/highwatermark.csv') %>%
            c('NC',
              'SC') &
            countyName != 'Charleston County') %>%
-  drop_na()
+  drop_na() %>%
+  relocate(
+    c(latitude, longitude),
+    .after = last_col()
+  ) %>%
+  relocate(hwm_id) %>%
+  mutate(
+    height_above_gnd = round(
+      height_above_gnd, 2),
+    elev_ft = round(
+      elev_ft, 2)) %>%
+  arrange(
+    desc(elev_ft))
 
 hwm %>% write_csv('data/processed/hwm.csv')
 
@@ -243,4 +255,5 @@ terra::writeRaster(
   rasters,
   filename = 'data/processed/rasters.tif',
   overwrite = TRUE)
+
 
