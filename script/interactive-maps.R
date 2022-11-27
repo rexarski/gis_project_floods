@@ -32,14 +32,14 @@ tmap_options(
                'Esri.WorldImagery',
                'Esri.WorldTopoMap'))
 
-# interactive-map: trial ----------------------------------------------
+
+# [tmap] draft ---------------------------------------------------------
 
 tm_shape(rasters$flooded) +
   tm_raster(
     style = 'cat',
     alpha = 1,
-    palette = 'Blues'
-  ) +
+    palette = 'Blues') +
   tm_shape(rasters$perm_water) +
   tm_raster(
     # style = 'cat',
@@ -64,7 +64,8 @@ tm_shape(rasters$flooded) +
     alpha = 0.5,
     clustering = TRUE)
 
-# interactive-map: high-water marks -----------------------------------
+
+# 01 [tmap] hwm  -------------------------------------------------------
 
 tm_shape(
   rasters$flooded,
@@ -101,7 +102,8 @@ tm_shape(
       'High-water mark locations<br>after Hurricane Florence (2018)')
 
 
-# interactive table: high-water marks ---------------------------------
+
+# 02 [gt] hwm  ---------------------------------------------------------
 
 hwm %>%
   gt() %>%
@@ -166,7 +168,8 @@ hwm %>%
     source_notes.font.size = 12,
     heading.align = 'left')
 
-# interactive-map: hwm vs duration ------------------------------------
+
+# 03 [tmap] hwm vs duration --------------------------------------------
 
 hwm_mean_duration_5km <-
   hwm %>%
@@ -224,11 +227,14 @@ tm_shape(
       'High-water mark vs flooded durations<br>after Hurricane Florence (2018)')
 
 
+# 04 [ggplot2] hwm vs duration ----------------------------------------
+
 hwm_mean_duration_5km %>%
   ggplot(aes(x = mean_duration_5km,
-             fill = hwm_environment)) +
+             fill = hwm_environment,
+             y = sqrt(..count..))) +
   geom_histogram(
-    bins = 50,
+    bins = 20,
     color = '#e9ecef',
     alpha = 0.8,
     position = 'identity') +
@@ -244,24 +250,147 @@ hwm_mean_duration_5km %>%
                     'as the distribution is inflated with zeros'),
     caption = 'Data source: USGS',
     x = 'Avg flooded duration within 5km (days)',
-    y = 'High-water mark count',
+    y = 'Sqrt of high-water mark count',
     fill = 'High-water mark type')
 
 
-# interactive-map: hwm vs pop-density ---------------------------------
+# 05 [tmap] hwm vs pop-density ----------------------------------------
 
-# density rescale
+# Randomly sample 500 points within the area of interest
+# and find its pop_density 
+
+set.seed(2022)
+
+samples <- 
+  rasters$pop_density %>% 
+  terra::spatSample(
+    size = 1000,
+    method= 'regular', 
+    as.point = TRUE) %>% 
+  st_as_sf() %>%
+  drop_na() %>%
+  mutate(pop_density = round(pop_density),
+         dist_to_hwm_km = samples %>%
+           st_distance(
+             # unionized hwm
+             hwm %>%
+               st_as_sf(
+                 coords = c('longitude', 'latitude'),
+                 crs = 4326) %>%
+               st_union(),
+           ) %>%
+           units::set_units('km') %>%
+           as.double())
+
+tm_shape(rasters$pop_density,
+         name = 'Population density') +
+  tm_raster(
+    title = 'Population density (ppl/km^2)',
+    style = 'kmeans',
+    alpha = 0.6,
+    palette = 'Greens') +
+  tm_shape(
+    name = 'High-water mark',
+    hwm %>%
+      st_as_sf(
+        coords = c('longitude',
+                   'latitude'),
+        crs = 4326)) +
+  tm_dots(
+    size = 0.05,
+    popup.vars = c(
+      'ID' = 'hwm_id',
+      'State' = 'stateName',
+      'County' = 'countyName',
+      'Heigth above ground (ft)' = 'height_above_gnd',
+      'Elevation (ft)' = 'elev_ft',
+      'Type' = 'hwm_environment'),
+    alpha = 0.5) +
+  tm_minimap() +
+  tm_layout(
+    title = glue(
+      'High-water mark vs population density<br>',
+      'after Hurricane Florence (2018)'))
+  # tm_shape(
+  #   samples,
+  #   name = 'Samples') +
+  #   tm_dots(
+  #     title = 'Distance to nearest<br>high-water mark (km)',
+  #     size = 0.05,
+  #     alpha = 0.2,
+  #     col = 'dist_to_hwm_km',
+  #     pal = 'Reds',
+  #     style = 'pretty',
+  #     popup.vars = c(
+  #       'Distance to closest hwm' = 'dist_to_hwm_km'))
 
 
-# interactive-map: hwm vs perm-water ----------------------------------
+# 06 [ggplot2] hwm vs pop-density -------------------------------------
+
+samples %>%
+  as_tibble() %>%
+  ggplot(aes(x = dist_to_hwm_km,
+             y = sqrt(pop_density))) +
+  geom_point(
+    alpha = 0.5,
+    size = 2,
+    color = '#cd2327') +
+  geom_smooth(
+    method = lm,
+    size = 2) +
+  theme_pulp_fiction() +
+  labs(
+    title = 'More high-water marks in urban areas than rural areas?',
+    subtitle = glue('Population density of randomly sampled 1,000 ',
+                    'geospatial points vs<br>distances to',
+                    'their closest high-water marks'),
+    caption = 'Data source: USGS',
+    x = 'Distance to closest high-water mark (km)',
+    y = 'Sqrt of population denstiy (ppl/km^2)')
+
+# 07 [tmap] height_above_gnd vs elev_ft -------------------------------
+
+tm_basemap('Esri.WorldTopoMap') +
+  tm_shape(
+    rasters$hillshade,
+    name = 'Hillshade') +
+  tm_raster(
+    pal = gray.colors(
+      n = 10, 
+      start = 0, 
+      end = 1),
+    style = 'cont',
+    alpha = 0.9,
+    legend.show = FALSE) +
+  tm_shape(
+    rasters$elevation,
+    name = 'Elevation') +
+  tm_raster(
+    title = 'Elevation (m)',
+    palette = terrain.colors(n = 5),
+    # palette = 'Spectral',
+    # palette = met.brewer("Troy", n=4, type="continuous"),
+    alpha = 0.5) +
+  tm_shape(
+    hwm %>%
+      st_as_sf(
+        coords = c('longitude',
+                   'latitude'),
+        crs = 4326)) +
+  tm_dots(
+    col = 'elev_ft',
+    palette = c('-Spectral'),
+    style = 'pretty',
+    size = 'height_above_gnd',
+    popup.vars = TRUE,
+    alpha = 0.6)
+    # clustering = TRUE)
 
 
-# interactive-map: height_above_gnd vs elev_ft ------------------------
-
-# add topo
+# 08 [ggplot2] height_above_gnd vs elev_ft ----------------------------
 
 
-# interactive-map: height_above_gnd vs precip abnormality -------------
+# 09 [tmap] height_above_gnd vs precip abnormality --------------------
 
 
-
+# 10 [ggplot2] height_above_gnd vs precip abnormality -----------------
