@@ -7,8 +7,8 @@ library(lubridate)
 library(tmap)
 library(tidyverse)
 
-# tmap_mode('view')
-tmap_mode('plot')
+tmap_mode('view')
+# tmap_mode('plot')
 
 # decide to steer the wheel a little bit to focus on a flood event
 # that is closer to present and more accessible in terms of data
@@ -36,8 +36,6 @@ boundary <-
   terra::classify(
     cbind(0, 1))
 
-#############################################
-
 # layerCor: by reclassify all 0 to NA so that they layers share 
 # the exact same pixels
 
@@ -46,11 +44,9 @@ floods %>%
     cbind(NA, 0)) %>%
   terra::layerCor('pearson')
 
-#############################################
-
 # reclassify two categorical layers (jrc_perm_water and flooded)
 # remove the '0' pixels
-
+# 
 # floods$jrc_perm_water <-
 #   floods$jrc_perm_water %>%
 #   terra::classify(
@@ -102,17 +98,21 @@ hwm <- read_csv('data/raw/highwatermark.csv') %>%
   select(latitude,
          longitude,
          stateName,
+         countyName,
          height_above_gnd,
-         elev_ft) %>%
+         elev_ft,
+         hwm_id,
+         hwm_environment) %>%
   filter(stateName %in%
            c('NC',
-             'SC')) %>%
+             'SC') &
+           countyName != 'Charleston County') %>%
   drop_na()
 
 hwm %>% write_csv('data/processed/hwm.csv')
 
 tm_shape(boundary) +
-  tm_raster() +
+  tm_raster(alpha = 0.6) +
   tm_shape(
     hwm %>%
       st_as_sf(
@@ -123,7 +123,8 @@ tm_shape(boundary) +
     col = 'elev_ft',
     palette = 'Spectral',
     style = 'cont',
-    size = 'height_above_gnd')
+    size = 'height_above_gnd',
+    popup.vars = TRUE)
 
 # Precipitation
 
@@ -164,10 +165,10 @@ precip$precip_4 %>%
   tm_shape() +
   tm_raster()
 
-precip %>%
-  terra::writeRaster(
-    'data/processed/precip.tif',
-    overwrite = TRUE)
+# precip %>%
+#   terra::writeRaster(
+#     'data/processed/precip.tif',
+#     overwrite = TRUE)
 
 
 
@@ -182,10 +183,10 @@ dem <-
   terra::resample(floods) %>%
   terra::mask(boundary)
 
-dem %>%
-  terra::writeRaster(
-    'data/processed/dem.tif',
-    overwrite = TRUE)
+# dem %>%
+#   terra::writeRaster(
+#     'data/processed/dem.tif',
+#     overwrite = TRUE)
 
 hillshade <- 
   terra::shade(
@@ -201,10 +202,10 @@ hillshade <-
     angle = 45,
     direction = 135)
 
-hillshade %>%
-  terra::writeRaster(
-    'data/processed/hillshade.tif',
-    overwrite = TRUE)
+# hillshade %>%
+#   terra::writeRaster(
+#     'data/processed/hillshade.tif',
+#     overwrite = TRUE)
 
 hillshade %>%
   tm_shape('Hillshade') +
@@ -222,5 +223,42 @@ hillshade %>%
   tm_raster(
     title = 'Elevation (m)',
     palette = terrain.colors(n = 10),
-    style = 'cont')
+    style = 'cont',
+    alpha = 0.6)
 
+# US population density data
+
+# URL: https://hub.worldpop.org/geodata/summary?id=39728
+
+pop_den <- 
+  terra::rast('data/raw/usa_pd_2018_1km.tif') %>%
+  terra::resample(floods) %>%
+  terra::mask(boundary)
+
+tm_shape(pop_den) +
+  tm_raster()
+
+# Save the processed SpatRaster stack
+
+dem %>%
+  terra::set.names('elevation')
+hillshade %>%
+  terra::set.names('hillshade')
+pop_den %>%
+  terra::set.names('pop_density')
+precip$precip_4 %>%
+  terra::set.names('percent_of_normal_precip')
+
+rasters <- 
+  terra::rast(
+    c(floods,
+      dem,
+      hillshade,
+      pop_den,
+      precip$precip_4))
+
+terra::writeRaster(
+  rasters,
+  'data/processed/rasters.tif',
+  filetype = 'GTiff',
+  overwrite = TRUE)

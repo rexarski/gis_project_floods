@@ -4,3 +4,4 @@ highwatermark.csv,https://stn.wim.usgs.gov/FEV/#2018Florence,0.413,,1,44436,,,,,
 precip.tif,https://water.weather.gov/precip/download.php,5.6,NOAA_HRAP_Grid,4,22686169,-1904912,3434411,-7619987,-3423784,National precipitation of September 2018
 10_DEM_y30x-90.tif,https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/elevation/copernicus-dem/elevation,450.5,4326,1,144024001,-90.00042,-79.99958,29.99958,40.00042,DEM data of the tile where South Carolina roughly is
 10_DEM_y30x-80.tif,https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/elevation/copernicus-dem/elevation,123.8,4326,1,69136801,-80.00042,-73.99958,31.99958,40.00042,DEM data of the tile where North Carolina roughly is
+usa_pd_2018_1km.tif,https://hub.worldpop.org/geodata/summary?id=39728,49.1,4326,1,271267456,-179.1512,179.7821,18.90792,71.39125,Population density of 1km resolution in the affected area
