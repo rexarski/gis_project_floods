@@ -2,6 +2,7 @@ if (!require('pacman')) install.packages('pacman')
 pacman::p_load(
   tidyverse,
   ggtext,
+  showtext,
   ggthemes,
   MetBrewer,
   glue)

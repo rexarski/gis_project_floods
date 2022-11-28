@@ -526,6 +526,7 @@ server <- function(input, output) {
 
   output$fig4 <- renderPlot({
     hwm_mean_duration_5km() %>%
+      as_tibble() %>%
       ggplot(aes(
         x = mean_duration_5km,
         fill = hwm_environment,

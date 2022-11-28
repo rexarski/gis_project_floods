@@ -202,9 +202,10 @@ tm_shape(
 # 04 [ggplot2] hwm vs duration ----------------------------------------
 
 hwm_mean_duration_5km %>%
+  as_tibble() %>%
   ggplot(aes(x = mean_duration_5km,
              fill = hwm_environment,
-             y = sqrt(..count..))) +
+             y = sqrt(after_stat(count)))) +
   geom_histogram(
     bins = 20,
     color = '#e9ecef',
