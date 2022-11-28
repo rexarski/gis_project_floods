@@ -91,7 +91,7 @@ fig2 <-
     subtitle = md('in North Carolina and South Carolina')) %>%
   tab_footnote(
     footnote = md(
-      'Data source: **[USGS](https://stn.wim.usgs.gov/FEV/#2018Florence)**. [Download](data/processed/hwm.csv)'),
+      'Data source: **[USGS](https://stn.wim.usgs.gov/FEV/#2018Florence). [Download](data/processed/hwm.csv).**'),
     placement = 'right') %>%
   tab_style(
     locations = cells_column_labels(
@@ -115,20 +115,26 @@ fig2 <-
   data_color(
     columns = height_above_gnd,
     colors = scales::col_numeric(
-      c('#2fb7c4',
-        '#1b4789'),
+      c('#fde7b9',
+        '#f8b425'),
       domain = c(
         min(hwm$height_above_gnd),
         max(hwm$height_above_gnd)),
       alpha = 0.75)) %>%
+  data_color(
+    columns = hwm_environment,
+    colors = scales::col_factor(
+      c('#6fafb7',
+        '#2b70a4'),
+      domain = c(
+        'Coastal',
+        'Riverine')),
+    alpha = 0.75) %>%
   opt_all_caps() %>%
   opt_table_font(
     font = list(
       google_font('Chivo'),
       default_fonts())) %>%
-  # cols_width(
-  #   c(height_above_gnd) ~ px(100),
-  #   c(elev_ft) ~ px(80)) %>% 
   tab_options(
     column_labels.border.top.width = px(3),
     column_labels.border.top.color = 'transparent',
@@ -289,18 +295,6 @@ fig5 <-
     title = glue(
       'High-water mark vs population density<br>',
       'after Hurricane Florence (2018)'))
-# tm_shape(
-#   samples,
-#   name = 'Samples') +
-#   tm_dots(
-#     title = 'Distance to nearest<br>high-water mark (km)',
-#     size = 0.05,
-#     alpha = 0.2,
-#     col = 'dist_to_hwm_km',
-#     pal = 'Reds',
-#     style = 'pretty',
-#     popup.vars = c(
-#       'Distance to closest hwm' = 'dist_to_hwm_km'))
 
 
 # 06 [ggplot2] hwm vs pop-density -------------------------------------

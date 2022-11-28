@@ -7,6 +7,7 @@ library(sf)
 library(tmap)
 library(tidyverse)
 library(gt)
+library(gtExtras)
 
 
 # load data and source script -----------------------------------------
@@ -37,6 +38,31 @@ tmap_options(
   basemaps = c('CartoDB.DarkMatter',
                'Stamen.Toner'))
 
+set.seed(2022)
+
+samples <- 
+  rasters$pop_density %>% 
+    terra::spatSample(
+      size = 1000,
+      method= 'regular', 
+      as.point = TRUE) %>% 
+    st_as_sf() %>%
+    drop_na()
+
+samples <- 
+  samples %>%
+    mutate(pop_density = round(pop_density),
+           dist_to_hwm_km = samples %>%
+             st_distance(
+               # unionized hwm
+               hwm %>%
+                 st_as_sf(
+                   coords = c('longitude', 'latitude'),
+                   crs = 4326) %>%
+                 st_union(),
+             ) %>%
+             units::set_units('km') %>%
+             as.double())
 
 # ui ------------------------------------------------------------------
 
@@ -70,12 +96,8 @@ ui <- dashboardPage(
                 ),
                 column(
                   width = 9,
-                  box(
-                    tmapOutput('fig1'),
-                    width = '100%'),
-                  box(
-                    gt_output('fig2'),
-                    width = '100%')
+                  box(tmapOutput('fig1'), width = '100%'),
+                  box(gt_output('fig2'), width = '100%')
                 ))
       ),
       
@@ -183,14 +205,18 @@ server <- function(input, output) {
   ## reactive -----------------------------------------------------------
   
   hwm_reactive <- reactive({
-    hwm %>%
+    hwm
+  })
+  
+  hwm_sfc <- reactive({
+    hwm_reactive() %>%
       st_as_sf(
         coords = c('longitude', 'latitude'),
         crs = 4326)
   })
   
   hwm_mean_duration_5km <- reactive({
-    hwm_reactive() %>%
+    hwm_sfc() %>%
       mutate(
         mean_duration_5km =
           hwm %>%
@@ -210,12 +236,40 @@ server <- function(input, output) {
           round(2))
   })
   
+  rasters_reactive <- reactive({
+    rasters
+  })
+  
+  rasters_flooded <- reactive({
+    rasters_reactive()$flooded
+  })
+  
+  rasters_duration <- reactive({
+    rasters_reactive()$duration
+  })
+  
+  rasters_elevation <- reactive({
+    rasters_reactive()$elevation
+  })
+  
+  rasters_hillshade <- reactive({
+    rasters_reactive()$hillshade
+  })
+  
+  rasters_pdensity <- reactive({
+    rasters_reactive()$pop_density
+  })
+  
+  rasters_precip <- reactive({
+    rasters_reactive()$percent_of_normal_precip
+  })
+
   
   ## fig1-2 ----------------------------------------------------------
   
   output$fig1 <- renderTmap({
     tm_shape(
-      rasters$flooded,
+      rasters_flooded(),
       name = 'Flooded area') +
       tm_raster(
         style = 'cat',
@@ -223,11 +277,7 @@ server <- function(input, output) {
         palette = 'Blues',
         legend.show = FALSE) +
       tm_shape(
-        hwm %>%
-          st_as_sf(
-            coords = c('longitude',
-                       'latitude'),
-            crs = 4326),
+        hwm_sfc(),
         name = 'High-water marks') +
       tm_dots(
         title = 'High-water mark type',
@@ -250,7 +300,7 @@ server <- function(input, output) {
   })
   
   output$fig2 <- render_gt({
-    hwm %>%
+    hwm_reactive() %>%
       slice_max(n = 15, elev_ft) %>%
       gt() %>%
       cols_label(
@@ -267,7 +317,7 @@ server <- function(input, output) {
         subtitle = md('in North Carolina and South Carolina')) %>%
       tab_footnote(
         footnote = md(
-          'Data source: **[USGS](https://stn.wim.usgs.gov/FEV/#2018Florence)**. [Download](data/processed/hwm.csv)'),
+          'Data source: **[USGS](https://stn.wim.usgs.gov/FEV/#2018Florence). [Download](data/processed/hwm.csv).**'),
         placement = 'right') %>%
       tab_style(
         locations = cells_column_labels(
@@ -291,20 +341,26 @@ server <- function(input, output) {
       data_color(
         columns = height_above_gnd,
         colors = scales::col_numeric(
-          c('#2fb7c4',
-            '#1b4789'),
+          c('#fde7b9',
+            '#f8b425'),
           domain = c(
             min(hwm$height_above_gnd),
             max(hwm$height_above_gnd)),
           alpha = 0.75)) %>%
+      data_color(
+        columns = hwm_environment,
+        colors = scales::col_factor(
+          c('#6fafb7',
+            '#2b70a4'),
+          domain = c(
+            'Coastal',
+            'Riverine')),
+        alpha = 0.75) %>%
       opt_all_caps() %>%
       opt_table_font(
         font = list(
           google_font('Chivo'),
           default_fonts())) %>%
-      # cols_width(
-      #   c(height_above_gnd) ~ px(100),
-      #   c(elev_ft) ~ px(80)) %>% 
       tab_options(
         column_labels.border.top.width = px(3),
         column_labels.border.top.color = 'transparent',
@@ -320,7 +376,7 @@ server <- function(input, output) {
   
   output$fig3 <- renderTmap({
     tm_shape(
-      rasters$duration,
+      rasters_duration(),
       name = 'Flooded duration') +
       tm_raster(
         title = 'Flooded duration (days)',
@@ -382,13 +438,210 @@ server <- function(input, output) {
   
   ## fig5-6 ----------------------------------------------------------
   
+  output$fig5 <- renderTmap({
+    tm_shape(rasters_pdensity(),
+             name = 'Population density') +
+      tm_raster(
+        title = 'Population density (ppl/km^2)',
+        style = 'kmeans',
+        alpha = 0.6,
+        palette = 'Greens') +
+      tm_shape(
+        hwm_sfc(),
+        name = 'High-water mark') +
+      tm_dots(
+        border.alpha = 0,
+        col = '#f8b425',
+        size = 0.05,
+        popup.vars = c(
+          'ID' = 'hwm_id',
+          'State' = 'stateName',
+          'County' = 'countyName',
+          'Heigth above ground (ft)' = 'height_above_gnd',
+          'Elevation (ft)' = 'elev_ft',
+          'Type' = 'hwm_environment'),
+        alpha = 0.5) +
+      tm_layout(
+        title = glue(
+          'High-water mark vs population density<br>',
+          'after Hurricane Florence (2018)'))
+  })
+  
+  output$fig6 <- renderPlot({
+    samples %>%
+      as_tibble() %>%
+      ggplot(aes(x = dist_to_hwm_km,
+                 y = sqrt(pop_density))) +
+      geom_point(
+        alpha = 0.5,
+        size = 2,
+        color = '#cd2327') +
+      geom_smooth(
+        method = lm,
+        size = 2) +
+      theme_pulp_fiction() +
+      labs(
+        title = 'More high-water marks in urban areas than rural areas?',
+        subtitle = glue('Population density of randomly sampled 1,000 ',
+                        'geospatial points vs<br>distances to',
+                        'their closest high-water marks'),
+        caption = 'Data source: USGS',
+        x = 'Distance to closest high-water mark (km)',
+        y = 'Sqrt of population denstiy (ppl/km^2)')
+  })
   
   ## fig7-8 ----------------------------------------------------------
+  
+  output$fig7 <- renderTmap({
+    tm_shape(
+      rasters_hillshade(),
+      name = 'Hillshade') +
+      tm_raster(
+        pal = gray.colors(
+          n = 10, 
+          start = 0, 
+          end = 1),
+        style = 'cont',
+        alpha = 0.9,
+        legend.show = FALSE) +
+      tm_shape(
+        rasters_elevation(),
+        name = 'Elevation') +
+      tm_raster(
+        title = 'Elevation (m)',
+        style = 'cont',
+        palette = rev(met.brewer(
+          'Hiroshige',
+          n=100)),
+        alpha = 0.6,
+        midpoint = NA) +
+      tm_shape(
+        name = 'Height above ground',
+        hwm_sfc() %>%
+          mutate(
+            sqrt_elev_m = sqrt(
+              elev_ft * 0.3048))) +
+      tm_dots(
+        title = 'Height above ground (ft)',
+        col = 'height_above_gnd',
+        palette = met.brewer(
+          'OKeeffe2',
+          n = 6),
+        border.alpha = 0,
+        style = 'pretty',
+        size = 'sqrt_elev_m',
+        popup.vars = c(
+          'ID' = 'hwm_id',
+          'State' = 'stateName',
+          'County' = 'countyName',
+          'Heigth above ground (ft)' = 'height_above_gnd',
+          'Elevation (ft)' = 'elev_ft',
+          'Type' = 'hwm_environment'),
+        alpha = 0.3) +
+      tm_layout(
+        title = 
+          'Height above ground vs elevation')
+  })
+  
+  output$fig8 <- renderPlot({
+    hwm_sfc() %>%
+      mutate(complete = 'All') %>%
+      ggplot(aes(
+        x = elev_ft,
+        y = height_above_gnd,
+        color = hwm_environment)) +
+      geom_point(
+        alpha = 0.5,
+        size = 2) +
+      geom_smooth(
+        se = FALSE,
+        method = lm,
+        size = 1.5) +
+      geom_smooth(
+        se = FALSE,
+        method = lm,
+        size = 1.5,
+        aes(color = complete)) +
+      scale_color_manual(values = 
+                           met.brewer(
+                             'Austria',
+                             n = 3)) +
+      theme_pulp_fiction() +
+      labs(
+        title = glue('Heights vs elevations of high-water marks'),
+        subtitle = glue('The green line indicates the regression line <br>',
+                        'of all data points'),
+        caption = 'Data source: USGS',
+        x = 'Elevation (ft)',
+        y = 'Height above ground (ft)',
+        color = 'High-water mark type')
+  })
   
   
   ## fig9-10 ----------------------------------------------------------
   
+  output$fig9 <- renderTmap({
+    tm_shape(
+      rasters_precip(),
+      name = 'Precipitation') +
+      tm_raster(
+        title = 'Normal precipitation (%)',
+        style = 'pretty',
+        alpha = 0.8,
+        palette = 'Blues',
+        legend.show = TRUE) +
+      tm_shape(
+        hwm_mean_duration_5km(),
+        name = 'High-water marks') +
+      tm_dots(
+        title = 'Heigh above ground (ft)',
+        size = 0.05,
+        border.alpha = 0,
+        col = 'height_above_gnd',
+        palette = met.brewer(
+          'OKeeffe2',
+          n = 6),
+        style = 'pretty',
+        popup.vars = c(
+          'ID' = 'hwm_id',
+          'State' = 'stateName',
+          'County' = 'countyName',
+          'Heigth above ground (ft)' = 'height_above_gnd',
+          'Elevation (ft)' = 'elev_ft',
+          'Type' = 'hwm_environment')) +
+      tm_layout(
+        title =
+          glue('High-water mark height vs relative precipitation'))
+  })
   
+  output$fig10 <- renderPlot({
+    hwm_sfc() %>%
+      mutate(
+        precip = hwm_sfc() %>%
+          terra::vect() %>%
+          terra::extract(
+            rasters_precip() %>%
+              terra::classify(
+                cbind(NA, 0)),
+            .) %>%
+          pull(percent_of_normal_precip),
+        precip = precip / 100) %>%
+      ggplot(aes(
+        x = precip,
+        y = height_above_gnd)) +
+      geom_point(alpha = 0.6,
+                 color = met.brewer(
+                   'Austria',
+                   n = 1)) +
+      geom_smooth(method = lm) +
+      scale_x_continuous(labels = scales::percent) +
+      theme_pulp_fiction() +
+      labs(
+        title = glue('Heights vs elevations of high-water marks'),
+        caption = 'Data source: USGS',
+        x = 'Normal precipitation (%) ',
+        y = 'Height above ground (ft)')
+  })
 }
 
 
