@@ -32,44 +32,12 @@ tmap_options(
                'Esri.WorldImagery',
                'Esri.WorldTopoMap'))
 
-
-# [tmap] draft ---------------------------------------------------------
-
-tm_shape(rasters$flooded) +
-  tm_raster(
-    style = 'cat',
-    alpha = 1,
-    palette = 'Blues') +
-  tm_shape(rasters$perm_water) +
-  tm_raster(
-    # style = 'cat',
-    # alpha = 1,
-    palette = 'Greens') +
-  tm_shape(rasters$pop_density) +
-  tm_raster(
-    palette = 'Reds',
-    alpha = 0.5,) +
-  tm_shape(
-    hwm %>%
-      st_as_sf(
-        coords = c('longitude',
-                   'latitude'),
-        crs = 4326)) +
-  tm_dots(
-    col = 'hwm_environment',
-    # palette = c('Spectral'),
-    style = 'cat',
-    # size = 'height_above_gnd',
-    popup.vars = TRUE,
-    alpha = 0.5,
-    clustering = TRUE)
-
-
 # 01 [tmap] hwm  -------------------------------------------------------
 
-tm_shape(
-  rasters$flooded,
-  name = 'Flooded area') +
+fig1 <-
+  tm_shape(
+    rasters$flooded,
+    name = 'Flooded area') +
   tm_raster(
     style = 'cat',
     alpha = 1,
@@ -97,7 +65,6 @@ tm_shape(
       'Heigth above ground (ft)' = 'height_above_gnd',
       'Elevation (ft)' = 'elev_ft',
       'Type' = 'hwm_environment')) +
-  tm_minimap() +
   tm_layout(
     title = 
       'High-water mark locations<br>after Hurricane Florence (2018)')
@@ -106,7 +73,9 @@ tm_shape(
 
 # 02 [gt] hwm  ---------------------------------------------------------
 
-hwm %>%
+fig2 <-
+  hwm %>%
+  slice_max(n = 15, elev_ft) %>%
   gt() %>%
   cols_label(
     hwm_id = 'ID',
@@ -118,11 +87,11 @@ hwm %>%
     latitude = 'Latitude',
     longitude = 'Longitude') %>%
   tab_header(
-    title = md('**High-water marks after Hurricane Florence (2018)**'),
+    title = md('**Top 15 High-water marks after Hurricane Florence (2018)**'),
     subtitle = md('in North Carolina and South Carolina')) %>%
   tab_footnote(
     footnote = md(
-      'Data source: **[USGS](https://stn.wim.usgs.gov/FEV/#2018Florence)**'),
+      'Data source: **[USGS](https://stn.wim.usgs.gov/FEV/#2018Florence)**. [Download](data/processed/hwm.csv)'),
     placement = 'right') %>%
   tab_style(
     locations = cells_column_labels(
@@ -195,9 +164,10 @@ hwm_mean_duration_5km <-
       pull() %>%
       round(2))
 
-tm_shape(
-  rasters$duration,
-  name = 'Flooded duration') +
+fig3 <-
+  tm_shape(
+    rasters$duration,
+    name = 'Flooded duration') +
   tm_raster(
     title = 'Flooded duration (days)',
     style = 'pretty',
@@ -223,7 +193,6 @@ tm_shape(
       'Type' = 'hwm_environment',
       'Average flooded duration (days) within 5km radius' =
         'mean_duration_5km')) +
-  tm_minimap() +
   tm_layout(
     title =
       glue('High-water mark vs flooded durations<br>',
@@ -232,7 +201,8 @@ tm_shape(
 
 # 04 [ggplot2] hwm vs duration ----------------------------------------
 
-hwm_mean_duration_5km %>%
+fig4 <- 
+  hwm_mean_duration_5km %>%
   ggplot(aes(x = mean_duration_5km,
              fill = hwm_environment,
              y = sqrt(..count..))) +
@@ -288,8 +258,9 @@ samples <-
            units::set_units('km') %>%
            as.double())
 
-tm_shape(rasters$pop_density,
-         name = 'Population density') +
+fig5 <- 
+  tm_shape(rasters$pop_density,
+           name = 'Population density') +
   tm_raster(
     title = 'Population density (ppl/km^2)',
     style = 'kmeans',
@@ -314,7 +285,6 @@ tm_shape(rasters$pop_density,
       'Elevation (ft)' = 'elev_ft',
       'Type' = 'hwm_environment'),
     alpha = 0.5) +
-  tm_minimap() +
   tm_layout(
     title = glue(
       'High-water mark vs population density<br>',
@@ -335,7 +305,8 @@ tm_shape(rasters$pop_density,
 
 # 06 [ggplot2] hwm vs pop-density -------------------------------------
 
-samples %>%
+fig6 <-
+  samples %>%
   as_tibble() %>%
   ggplot(aes(x = dist_to_hwm_km,
              y = sqrt(pop_density))) +
@@ -358,10 +329,10 @@ samples %>%
 
 # 07 [tmap] height_above_gnd vs elev_ft -------------------------------
 
-
-tm_shape(
-  rasters$hillshade,
-  name = 'Hillshade') +
+fig7 <-
+  tm_shape(
+    rasters$hillshade,
+    name = 'Hillshade') +
   tm_raster(
     pal = gray.colors(
       n = 10, 
@@ -408,14 +379,14 @@ tm_shape(
       'Elevation (ft)' = 'elev_ft',
       'Type' = 'hwm_environment'),
     alpha = 0.3) +
-  tm_minimap() +
   tm_layout(
     title = 
       'Height above ground vs elevation')
 
 # 08 [ggplot2] height_above_gnd vs elev_ft ----------------------------
 
-hwm %>%
+fig8 <-
+  hwm %>%
   mutate(complete = 'All') %>%
   ggplot(aes(
     x = elev_ft,
@@ -450,9 +421,10 @@ hwm %>%
 
 # 09 [tmap] height_above_gnd vs precip abnormality --------------------
 
-tm_shape(
-  rasters$percent_of_normal_precip,
-  name = 'Precipitation') +
+fig9 <- 
+  tm_shape(
+    rasters$percent_of_normal_precip,
+    name = 'Precipitation') +
   tm_raster(
     title = 'Normal precipitation (%)',
     style = 'pretty',
@@ -478,7 +450,6 @@ tm_shape(
       'Heigth above ground (ft)' = 'height_above_gnd',
       'Elevation (ft)' = 'elev_ft',
       'Type' = 'hwm_environment')) +
-  tm_minimap() +
   tm_layout(
     title =
       glue('High-water mark height vs relative precipitation'))
@@ -486,7 +457,8 @@ tm_shape(
 
 # 10 [ggplot2] height_above_gnd vs precip abnormality -----------------
 
-hwm %>%
+fig10 <-
+  hwm %>%
   mutate(
     precip = hwm %>%
       st_as_sf(
