@@ -86,8 +86,9 @@ tm_shape(
     title = 'High-water mark type',
     col = 'hwm_environment',
     size = 0.05,
-    palette = c('aquamarine',
-                'darkolivegreen3'),
+    border.alpha = 0,
+    palette = met.brewer('Hokusai2',
+                         n = 2),
     style = 'cat',
     popup.vars = c(
       'ID' = 'hwm_id',
@@ -209,6 +210,7 @@ tm_shape(
   tm_dots(
     title = 'Avg flooded duration<br>within 5km (days)',
     size = 0.05,
+    border.alpha = 0,
     col = 'mean_duration_5km',
     pal = 'plasma',
     style = 'cont',
@@ -223,8 +225,9 @@ tm_shape(
         'mean_duration_5km')) +
   tm_minimap() +
   tm_layout(
-    title = 
-      'High-water mark vs flooded durations<br>after Hurricane Florence (2018)')
+    title =
+      glue('High-water mark vs flooded durations<br>',
+           'after Hurricane Florence (2018)'))
 
 
 # 04 [ggplot2] hwm vs duration ----------------------------------------
@@ -268,7 +271,10 @@ samples <-
     method= 'regular', 
     as.point = TRUE) %>% 
   st_as_sf() %>%
-  drop_na() %>%
+  drop_na()
+
+samples <-
+  samples %>%
   mutate(pop_density = round(pop_density),
          dist_to_hwm_km = samples %>%
            st_distance(
@@ -290,13 +296,15 @@ tm_shape(rasters$pop_density,
     alpha = 0.6,
     palette = 'Greens') +
   tm_shape(
-    name = 'High-water mark',
     hwm %>%
       st_as_sf(
         coords = c('longitude',
                    'latitude'),
-        crs = 4326)) +
+        crs = 4326),
+    name = 'High-water mark') +
   tm_dots(
+    border.alpha = 0,
+    col = '#f8b425',
     size = 0.05,
     popup.vars = c(
       'ID' = 'hwm_id',
@@ -311,18 +319,18 @@ tm_shape(rasters$pop_density,
     title = glue(
       'High-water mark vs population density<br>',
       'after Hurricane Florence (2018)'))
-  # tm_shape(
-  #   samples,
-  #   name = 'Samples') +
-  #   tm_dots(
-  #     title = 'Distance to nearest<br>high-water mark (km)',
-  #     size = 0.05,
-  #     alpha = 0.2,
-  #     col = 'dist_to_hwm_km',
-  #     pal = 'Reds',
-  #     style = 'pretty',
-  #     popup.vars = c(
-  #       'Distance to closest hwm' = 'dist_to_hwm_km'))
+# tm_shape(
+#   samples,
+#   name = 'Samples') +
+#   tm_dots(
+#     title = 'Distance to nearest<br>high-water mark (km)',
+#     size = 0.05,
+#     alpha = 0.2,
+#     col = 'dist_to_hwm_km',
+#     pal = 'Reds',
+#     style = 'pretty',
+#     popup.vars = c(
+#       'Distance to closest hwm' = 'dist_to_hwm_km'))
 
 
 # 06 [ggplot2] hwm vs pop-density -------------------------------------
@@ -350,10 +358,10 @@ samples %>%
 
 # 07 [tmap] height_above_gnd vs elev_ft -------------------------------
 
-tm_basemap('Esri.WorldTopoMap') +
-  tm_shape(
-    rasters$hillshade,
-    name = 'Hillshade') +
+
+tm_shape(
+  rasters$hillshade,
+  name = 'Hillshade') +
   tm_raster(
     pal = gray.colors(
       n = 10, 
@@ -367,30 +375,143 @@ tm_basemap('Esri.WorldTopoMap') +
     name = 'Elevation') +
   tm_raster(
     title = 'Elevation (m)',
-    palette = terrain.colors(n = 5),
-    # palette = 'Spectral',
-    # palette = met.brewer("Troy", n=4, type="continuous"),
-    alpha = 0.5) +
+    style = 'cont',
+    palette = rev(met.brewer(
+      'Hiroshige',
+      n=100)),
+    alpha = 0.6,
+    midpoint = NA) +
   tm_shape(
+    name = 'Height above ground',
     hwm %>%
       st_as_sf(
         coords = c('longitude',
                    'latitude'),
-        crs = 4326)) +
+        crs = 4326) %>%
+      mutate(
+        sqrt_elev_m = sqrt(
+          elev_ft * 0.3048))) +
   tm_dots(
-    col = 'elev_ft',
-    palette = c('-Spectral'),
+    title = 'Height above ground (ft)',
+    col = 'height_above_gnd',
+    palette = met.brewer(
+      'OKeeffe2',
+      n = 6),
+    border.alpha = 0,
     style = 'pretty',
-    size = 'height_above_gnd',
-    popup.vars = TRUE,
-    alpha = 0.6)
-    # clustering = TRUE)
-
+    size = 'sqrt_elev_m',
+    popup.vars = c(
+      'ID' = 'hwm_id',
+      'State' = 'stateName',
+      'County' = 'countyName',
+      'Heigth above ground (ft)' = 'height_above_gnd',
+      'Elevation (ft)' = 'elev_ft',
+      'Type' = 'hwm_environment'),
+    alpha = 0.3) +
+  tm_minimap() +
+  tm_layout(
+    title = 
+      'Height above ground vs elevation')
 
 # 08 [ggplot2] height_above_gnd vs elev_ft ----------------------------
+
+hwm %>%
+  mutate(complete = 'All') %>%
+  ggplot(aes(
+    x = elev_ft,
+    y = height_above_gnd,
+    color = hwm_environment)) +
+  geom_point(
+    alpha = 0.5,
+    size = 2) +
+  geom_smooth(
+    se = FALSE,
+    method = lm,
+    size = 1.5) +
+  geom_smooth(
+    se = FALSE,
+    method = lm,
+    size = 1.5,
+    aes(color = complete)) +
+  scale_color_manual(values = 
+                       met.brewer(
+                         'Austria',
+                         n = 3)) +
+  theme_pulp_fiction() +
+  labs(
+    title = glue('Heights vs elevations of high-water marks'),
+    subtitle = glue('The green line indicates the regression line <br>',
+                    'of all data points'),
+    caption = 'Data source: USGS',
+    x = 'Elevation (ft)',
+    y = 'Height above ground (ft)',
+    color = 'High-water mark type')
 
 
 # 09 [tmap] height_above_gnd vs precip abnormality --------------------
 
+tm_shape(
+  rasters$percent_of_normal_precip,
+  name = 'Precipitation') +
+  tm_raster(
+    title = 'Normal precipitation (%)',
+    style = 'pretty',
+    alpha = 0.8,
+    palette = 'Blues',
+    legend.show = TRUE) +
+  tm_shape(
+    hwm_mean_duration_5km,
+    name = 'High-water marks') +
+  tm_dots(
+    title = 'Heigh above ground (ft)',
+    size = 0.05,
+    border.alpha = 0,
+    col = 'height_above_gnd',
+    palette = met.brewer(
+      'OKeeffe2',
+      n = 6),
+    style = 'pretty',
+    popup.vars = c(
+      'ID' = 'hwm_id',
+      'State' = 'stateName',
+      'County' = 'countyName',
+      'Heigth above ground (ft)' = 'height_above_gnd',
+      'Elevation (ft)' = 'elev_ft',
+      'Type' = 'hwm_environment')) +
+  tm_minimap() +
+  tm_layout(
+    title =
+      glue('High-water mark height vs relative precipitation'))
+
 
 # 10 [ggplot2] height_above_gnd vs precip abnormality -----------------
+
+hwm %>%
+  mutate(
+    precip = hwm %>%
+      st_as_sf(
+        coords = c('longitude', 'latitude'),
+        crs = 4326) %>%
+      terra::vect() %>%
+      terra::extract(
+        rasters$percent_of_normal_precip %>%
+          terra::classify(
+            cbind(NA, 0)),
+        .) %>%
+      pull(percent_of_normal_precip),
+    precip = precip / 100) %>%
+  ggplot(aes(
+    x = precip,
+    y = height_above_gnd)) +
+  geom_point(alpha = 0.6,
+             color = met.brewer(
+               'Austria',
+               n = 1)) +
+  geom_smooth(method = lm) +
+  scale_x_continuous(labels = scales::percent) +
+  theme_pulp_fiction() +
+  labs(
+    title = glue('Heights vs elevations of high-water marks'),
+    caption = 'Data source: USGS',
+    x = 'Normal precipitation (%) ',
+    y = 'Height above ground (ft)')

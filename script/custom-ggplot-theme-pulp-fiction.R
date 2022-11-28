@@ -7,7 +7,8 @@ pacman::p_load(
   glue,
   tidytext,
   showtext,
-  ggrepel
+  ggrepel,
+  ggpubr
 )
 
 font_add_google(
