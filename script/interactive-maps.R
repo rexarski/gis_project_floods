@@ -1,5 +1,4 @@
 library(sf)
-library(lubridate)
 library(tmap)
 library(tidyverse)
 library(gt)
@@ -28,16 +27,13 @@ source('script/custom-ggplot-theme-pulp-fiction.R')
 
 tmap_options(
   basemaps = c('CartoDB.DarkMatter',
-               'Stamen.Toner',
-               'Esri.WorldImagery',
-               'Esri.WorldTopoMap'))
+               'Stamen.Toner'))
 
 # 01 [tmap] hwm  -------------------------------------------------------
 
-fig1 <-
-  tm_shape(
-    rasters$flooded,
-    name = 'Flooded area') +
+tm_shape(
+  rasters$flooded,
+  name = 'Flooded area') +
   tm_raster(
     style = 'cat',
     alpha = 1,
@@ -73,8 +69,7 @@ fig1 <-
 
 # 02 [gt] hwm  ---------------------------------------------------------
 
-fig2 <-
-  hwm %>%
+hwm %>%
   slice_max(n = 15, elev_ft) %>%
   gt() %>%
   cols_label(
@@ -170,10 +165,9 @@ hwm_mean_duration_5km <-
       pull() %>%
       round(2))
 
-fig3 <-
-  tm_shape(
-    rasters$duration,
-    name = 'Flooded duration') +
+tm_shape(
+  rasters$duration,
+  name = 'Flooded duration') +
   tm_raster(
     title = 'Flooded duration (days)',
     style = 'pretty',
@@ -207,8 +201,7 @@ fig3 <-
 
 # 04 [ggplot2] hwm vs duration ----------------------------------------
 
-fig4 <- 
-  hwm_mean_duration_5km %>%
+hwm_mean_duration_5km %>%
   ggplot(aes(x = mean_duration_5km,
              fill = hwm_environment,
              y = sqrt(..count..))) +
@@ -264,9 +257,8 @@ samples <-
            units::set_units('km') %>%
            as.double())
 
-fig5 <- 
-  tm_shape(rasters$pop_density,
-           name = 'Population density') +
+tm_shape(rasters$pop_density,
+         name = 'Population density') +
   tm_raster(
     title = 'Population density (ppl/km^2)',
     style = 'kmeans',
@@ -299,8 +291,7 @@ fig5 <-
 
 # 06 [ggplot2] hwm vs pop-density -------------------------------------
 
-fig6 <-
-  samples %>%
+samples %>%
   as_tibble() %>%
   ggplot(aes(x = dist_to_hwm_km,
              y = sqrt(pop_density))) +
@@ -323,10 +314,9 @@ fig6 <-
 
 # 07 [tmap] height_above_gnd vs elev_ft -------------------------------
 
-fig7 <-
-  tm_shape(
-    rasters$hillshade,
-    name = 'Hillshade') +
+tm_shape(
+  rasters$hillshade,
+  name = 'Hillshade') +
   tm_raster(
     pal = gray.colors(
       n = 10, 
@@ -379,8 +369,7 @@ fig7 <-
 
 # 08 [ggplot2] height_above_gnd vs elev_ft ----------------------------
 
-fig8 <-
-  hwm %>%
+hwm %>%
   mutate(complete = 'All') %>%
   ggplot(aes(
     x = elev_ft,
@@ -415,10 +404,9 @@ fig8 <-
 
 # 09 [tmap] height_above_gnd vs precip abnormality --------------------
 
-fig9 <- 
-  tm_shape(
-    rasters$percent_of_normal_precip,
-    name = 'Precipitation') +
+tm_shape(
+  rasters$percent_of_normal_precip,
+  name = 'Precipitation') +
   tm_raster(
     title = 'Normal precipitation (%)',
     style = 'pretty',
@@ -451,8 +439,7 @@ fig9 <-
 
 # 10 [ggplot2] height_above_gnd vs precip abnormality -----------------
 
-fig10 <-
-  hwm %>%
+hwm %>%
   mutate(
     precip = hwm %>%
       st_as_sf(

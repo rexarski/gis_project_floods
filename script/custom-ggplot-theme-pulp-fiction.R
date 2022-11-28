@@ -4,12 +4,7 @@ pacman::p_load(
   ggtext,
   ggthemes,
   MetBrewer,
-  glue,
-  tidytext,
-  showtext,
-  ggrepel,
-  ggpubr
-)
+  glue)
 
 font_add_google(
   name = 'Chivo',

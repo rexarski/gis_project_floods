@@ -1,17 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Chivo');
 
 body {
-  background-color: black;
-  color: white; /* text color */
   font-family: 'Chivo', sans-serif;
-}
-
-/* Change header text to imported font */
-h2 {
-  font-family: 'Chivo', sans-serif;
-}
-
-/* Make text visible on inputs */
-.shiny-input-container {
-  color: #474747;
 }
